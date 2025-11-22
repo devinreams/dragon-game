@@ -2,10 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Rainforest Frog Flight</title>
   <style>
     * {
       box-sizing: border-box;
+    }
+
+    html, body {
+      overflow: hidden;
+      touch-action: none;
     }
 
     body {
@@ -17,10 +23,20 @@
       background: radial-gradient(circle at top, #1e355f, #050814);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: #fff;
+      touch-action: none; /* prevent zoom/pan; ensure taps reach canvas */
     }
 
     #game-wrapper {
       position: relative;
+    }
+
+    #tap-capture {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      background: transparent;
+      pointer-events: auto;
+      touch-action: manipulation; /* Better touch handling for mobile */
     }
 
     canvas {
@@ -28,6 +44,7 @@
       background: linear-gradient(to top, #2c4c1e, #1c2340);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       display: block;
+      touch-action: manipulation; /* Better touch handling for mobile */
     }
 
     #hud {
@@ -73,13 +90,13 @@
 <body>
   <div id="game-wrapper">
     <canvas id="game" width="800" height="400"></canvas>
+    <div id="tap-capture"></div>
     <div id="hud">
       <div>🐸 Rainforest Flight</div>
       <div>Score: <span id="score">0</span></div>
     </div>
     <div id="controls">
-      Press <strong>Space</strong> or <strong>↑</strong> to flap &nbsp;|&nbsp;
-      Press <strong>Enter</strong> to restart after crashing
+      Tap or press <strong>Space</strong> to flap &nbsp;|&nbsp; Tap or press <strong>Enter</strong> to restart
     </div>
     <div id="message" class="hidden"></div>
   </div>
@@ -103,6 +120,7 @@
     let frameCount;
     let score;
     let isGameOver;
+    let gameStarted;
     let backgroundOffset;
     let backgroundTrees;
     let backgroundFlowers;
@@ -114,9 +132,9 @@
 
     // Obstacle constants
     const OBSTACLE_WIDTH = 70;
-    const GAP_HEIGHT = 200;
-    const OBSTACLE_SPACING_MIN = 90; // frames between spawns (min)
-    const OBSTACLE_SPACING_MAX = 140; // frames between spawns (max)
+    const GAP_HEIGHT = 280;
+    const OBSTACLE_SPACING_MIN = 140; // frames between spawns (min)
+    const OBSTACLE_SPACING_MAX = 200; // frames between spawns (max)
 
     let nextObstacleIn = 0;
     const frogImage = new Image();
@@ -136,15 +154,16 @@
         width: DRAGON_WIDTH,
         height: DRAGON_HEIGHT,
         dy: 0,
-        flapStrength: -8
+        flapStrength: -7
       };
 
-      gravity = 0.4;
+      gravity = 0.35;
       gameSpeed = 3.5;
       frameCount = 0;
       score = 0;
       obstacles = [];
       isGameOver = false;
+      gameStarted = false;
       nextObstacleIn = Math.floor(randomRange(OBSTACLE_SPACING_MIN, OBSTACLE_SPACING_MAX));
       backgroundOffset = 0;
       backgroundTrees = [];
@@ -152,8 +171,8 @@
       generateBackgroundDecorations();
       scoreEl.textContent = "0";
 
-      messageEl.textContent = "";
-      messageEl.classList.add("hidden");
+      messageEl.innerHTML = "Tap or press <strong>Space</strong> to start!";
+      messageEl.classList.remove("hidden");
     }
 
     function generateBackgroundDecorations() {
@@ -251,7 +270,7 @@
       if (isGameOver) return;
       isGameOver = true;
       messageEl.innerHTML =
-        `💥 Game Over!<br/>Score: <strong>${score}</strong><br/><br/>Press <strong>Enter</strong> or <strong>Space</strong> to play again.`;
+        `💥 Game Over!<br/>Score: <strong>${score}</strong><br/><br/>Tap or press <strong>Space</strong> to play again.`;
       messageEl.classList.remove("hidden");
     }
 
@@ -353,7 +372,7 @@
     }
 
     function update() {
-      if (isGameOver) return;
+      if (!gameStarted || isGameOver) return;
       frameCount += 1;
       updateDragon();
       updateObstacles();
@@ -375,9 +394,14 @@
     }
 
     // Input handling
-    function handleFlap() {
+    function handleTap() {
       if (isGameOver) {
         resetGame();
+        return;
+      }
+      if (!gameStarted) {
+        gameStarted = true;
+        messageEl.classList.add("hidden");
         return;
       }
       dragon.dy = dragon.flapStrength;
@@ -386,11 +410,50 @@
     document.addEventListener("keydown", (e) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
-        handleFlap();
+        handleTap();
       } else if (e.code === "Enter" && isGameOver) {
         e.preventDefault();
         resetGame();
       }
+    });
+
+    // Pointer/touch handling for mobile/iPad
+    const tapCapture = document.getElementById("tap-capture");
+
+    // Track if we've already handled this touch to prevent double-firing
+    let touchHandled = false;
+
+    const onTap = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Reset the flag after a short delay
+      if (!touchHandled) {
+        touchHandled = true;
+        handleTap();
+        setTimeout(() => { touchHandled = false; }, 100);
+      }
+    };
+
+    // Primary touch handling for iOS/iPad - use touchstart for best responsiveness
+    tapCapture.addEventListener('touchstart', onTap, { passive: false });
+
+    // Fallback for desktop browsers
+    tapCapture.addEventListener('mousedown', onTap, { passive: false });
+
+    // Prevent multi-touch gestures and scrolling
+    const preventGestures = (e) => {
+      if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventGestures, { passive: false });
+    document.addEventListener("touchstart", preventGestures, { passive: false });
+
+    // Prevent gesture events on iOS
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(eventType => {
+      document.addEventListener(eventType, (e) => e.preventDefault(), { passive: false });
     });
 
     // Start game
