@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Rainforest Frog Flight</title>
+  <title>Alex's Rainforest Frog Flight</title>
   <style>
     * {
       box-sizing: border-box;
@@ -92,7 +92,7 @@
     <canvas id="game" width="800" height="400"></canvas>
     <div id="tap-capture"></div>
     <div id="hud">
-      <div>🐸 Rainforest Flight</div>
+      <div>🐸 Alex's Rainforest Frog Flight</div>
       <div>Score: <span id="score">0</span></div>
     </div>
     <div id="controls">
@@ -185,10 +185,22 @@
         });
       }
 
-      for (let x = 20; x < WIDTH + 200; x += 90) {
+      // Generate more flowers with varied colors
+      const flowerColors = [
+        '#f9c74f', // yellow
+        '#ff6f61', // red/pink
+        '#90e0ef', // light blue
+        '#a084dc', // purple
+        '#4d9de0', // blue
+        '#c77dff'  // violet
+      ];
+
+      for (let x = 20; x < WIDTH + 200; x += 45) {
         backgroundFlowers.push({
           x,
-          y: HEIGHT - 60 + randomRange(-6, -1)
+          y: HEIGHT - 60 + randomRange(-8, -1),
+          color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
+          size: randomRange(3, 5)
         });
       }
     }
@@ -315,13 +327,15 @@
 
         // Flowers (precomputed so they don't jitter)
         for (const flower of backgroundFlowers) {
-          ctx.fillStyle = "#f9c74f";
+          ctx.fillStyle = flower.color;
           ctx.beginPath();
-          ctx.arc(flower.x, flower.y, 4, 0, Math.PI * 2);
+          ctx.arc(flower.x, flower.y, flower.size, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = "#ff6f61";
+
+          // Add a subtle center
+          ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
           ctx.beginPath();
-          ctx.arc(flower.x + 8, flower.y + 2, 3, 0, Math.PI * 2);
+          ctx.arc(flower.x, flower.y, flower.size * 0.4, 0, Math.PI * 2);
           ctx.fill();
         }
 
