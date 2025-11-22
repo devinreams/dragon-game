@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Dragon Flight Game</title>
+  <title>Rainforest Frog Flight</title>
   <style>
     * {
       box-sizing: border-box;
@@ -74,7 +74,7 @@
   <div id="game-wrapper">
     <canvas id="game" width="800" height="400"></canvas>
     <div id="hud">
-      <div>🐉 Dragon Flight</div>
+      <div>🐸 Rainforest Flight</div>
       <div>Score: <span id="score">0</span></div>
     </div>
     <div id="controls">
@@ -105,7 +105,7 @@
     let isGameOver;
     let backgroundOffset;
 
-    // Dragon constants
+    // Dragon (frog) constants
     const DRAGON_WIDTH = 50;
     const DRAGON_HEIGHT = 35;
 
@@ -228,7 +228,7 @@
 
     function drawBackground() {
       // Ground
-      const groundHeight = 50;
+      const groundHeight = 60;
       const offset = backgroundOffset % WIDTH;
 
       // Shift the scenery to create a scrolling effect
@@ -240,30 +240,42 @@
         ctx.save();
         ctx.translate(i, 0);
 
-        ctx.fillStyle = "#23331a";
+        // Vibrant jungle floor
+        ctx.fillStyle = "#2d5d32";
         ctx.fillRect(0, HEIGHT - groundHeight, WIDTH, groundHeight);
 
-        ctx.fillStyle = "#1a243f";
-        ctx.beginPath();
-        ctx.moveTo(0, HEIGHT - groundHeight);
-        ctx.lineTo(120, 210);
-        ctx.lineTo(240, HEIGHT - groundHeight);
-        ctx.closePath();
-        ctx.fill();
+        // Tree trunks
+        ctx.fillStyle = "#3b2a18";
+        for (let x = 40; x < WIDTH + 200; x += 140) {
+          const trunkHeight = randomRange(150, 240);
+          ctx.fillRect(x, HEIGHT - groundHeight - trunkHeight, 24, trunkHeight);
+        }
 
-        ctx.beginPath();
-        ctx.moveTo(200, HEIGHT - groundHeight);
-        ctx.lineTo(380, 190);
-        ctx.lineTo(560, HEIGHT - groundHeight);
-        ctx.closePath();
-        ctx.fill();
+        // Canopies
+        ctx.fillStyle = "#3fa35b";
+        for (let x = 20; x < WIDTH + 200; x += 140) {
+          const canopyY = HEIGHT - groundHeight - randomRange(130, 180);
+          ctx.beginPath();
+          ctx.ellipse(x, canopyY, 70, 40, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(x + 55, canopyY + 10, 60, 35, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
-        ctx.beginPath();
-        ctx.moveTo(500, HEIGHT - groundHeight);
-        ctx.lineTo(700, 220);
-        ctx.lineTo(900, HEIGHT - groundHeight);
-        ctx.closePath();
-        ctx.fill();
+        // Flowers
+        ctx.fillStyle = "#f9c74f";
+        for (let x = 20; x < WIDTH + 200; x += 90) {
+          ctx.beginPath();
+          const y = HEIGHT - groundHeight + randomRange(-6, -1);
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ff6f61";
+          ctx.beginPath();
+          ctx.arc(x + 8, y + 2, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#f9c74f";
+        }
 
         ctx.restore();
       }
@@ -272,55 +284,25 @@
     }
 
     function drawDragon() {
-      // Body
+      // Render a big poison-dart frog emoji as the player character
       ctx.save();
       ctx.translate(dragon.x, dragon.y);
-
-      // Body
-      ctx.fillStyle = "#4caf50";
-      ctx.fillRect(0, 10, dragon.width, dragon.height - 10);
-
-      // Head
-      ctx.fillStyle = "#66bb6a";
-      ctx.fillRect(-10, 5, 25, 25);
-
-      // Eye
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 10, 6, 6);
-      ctx.fillStyle = "#000";
-      ctx.fillRect(2, 12, 3, 3);
-
-      // Wing (simple triangle)
-      ctx.fillStyle = "#2e7d32";
-      ctx.beginPath();
-      ctx.moveTo(20, dragon.height - 10);
-      ctx.lineTo(5, dragon.height + 15);
-      ctx.lineTo(40, dragon.height - 5);
-      ctx.closePath();
-      ctx.fill();
-
-      // Tail
-      ctx.beginPath();
-      ctx.moveTo(dragon.width, dragon.height - 5);
-      ctx.lineTo(dragon.width + 18, dragon.height - 12);
-      ctx.lineTo(dragon.width, dragon.height - 20);
-      ctx.closePath();
-      ctx.fill();
-
+      ctx.font = "48px 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif";
+      ctx.fillText("🐸", -6, 40);
       ctx.restore();
     }
 
     function drawObstacles() {
       for (const ob of obstacles) {
-        // Top pillar
-        ctx.fillStyle = "#455a64";
+        // Top log
+        ctx.fillStyle = "#4b2e16";
         ctx.fillRect(ob.x, 0, ob.width, ob.gapTop);
 
-        // Bottom pillar
+        // Bottom log
         ctx.fillRect(ob.x, ob.gapBottom, ob.width, HEIGHT - ob.gapBottom);
 
-        // Slight "cap" for style
-        ctx.fillStyle = "#78909c";
+        // Bark highlight
+        ctx.fillStyle = "#6d4c33";
         ctx.fillRect(ob.x, ob.gapTop - 6, ob.width, 6);
         ctx.fillRect(ob.x, ob.gapBottom, ob.width, 6);
       }
