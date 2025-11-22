@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Rainforest Frog Flight</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      overflow: hidden;
+      touch-action: none;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1e355f, #050814);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #fff;
+      touch-action: none;
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #tap-capture {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      background: transparent;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+
+    canvas {
+      border-radius: 0;
+      background: linear-gradient(to top, #2c4c1e, #1c2340);
+      display: block;
+      touch-action: manipulation;
+      width: 100vw;
+      height: 100vh;
+      object-fit: fill;
+    }
+
+    #hud {
+      position: absolute;
+      top: 50px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 14px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+    }
+
+    #score-box {
+      background: white;
+      border-radius: 8px;
+      padding: 8px 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      min-width: 100px;
+    }
+
+    #score-label {
+      font-size: 12px;
+      color: #000;
+      font-weight: 600;
+      text-shadow: none;
+      margin-bottom: 4px;
+    }
+
+    #score {
+      font-size: 48px;
+      font-weight: bold;
+      color: #000;
+      text-shadow: none;
+      line-height: 1;
+      display: block;
+    }
+
+    #controls {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      right: 12px;
+      font-size: 13px;
+      opacity: 0.8;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+    }
+
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 20px;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+    }
+
+    #message.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-wrapper">
+    <canvas id="game"></canvas>
+    <div id="tap-capture"></div>
+    <div id="hud">
+      <div>🐸 Rainforest Flight</div>
+      <div id="score-box">
+        <div id="score-label">Score</div>
+        <span id="score">0</span>
+      </div>
+    </div>
+    <div id="controls">
+      Tap to flap &nbsp;|&nbsp; Tap to restart after crashing
+    </div>
+    <div id="message" class="hidden"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    /** @type {CanvasRenderingContext2D} */
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const messageEl = document.getElementById("message");
+
+    // Set canvas size to match window dimensions
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
+
+    // Game state
+    let dragon;
+    let obstacles;
+    let gravity;
+    let gameSpeed;
+    let frameCount;
+    let score;
+    let isGameOver;
+    let gameStarted;
+    let backgroundOffset;
+    let backgroundTrees;
+    let backgroundFlowers;
+    let frogImageLoaded = false;
+
+    // Dragon (frog) constants
+    const DRAGON_WIDTH = 70;
+    const DRAGON_HEIGHT = 50;
+
+    // Obstacle constants
+    const OBSTACLE_WIDTH = 70;
+    const GAP_HEIGHT = 280;
+    const OBSTACLE_SPACING_MIN = 140; // frames between spawns (min)
+    const OBSTACLE_SPACING_MAX = 200; // frames between spawns (max)
+
+    let nextObstacleIn = 0;
+    const frogImage = new Image();
+    frogImage.onload = () => {
+      frogImageLoaded = true;
+    };
+    frogImage.src = "frog.svg";
+
+    function randomRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function resetGame() {
+      dragon = {
+        x: 140,
+        y: HEIGHT / 2,
+        width: DRAGON_WIDTH,
+        height: DRAGON_HEIGHT,
+        dy: 0,
+        flapStrength: -7
+      };
+
+      gravity = 0.35;
+      gameSpeed = 3.5;
+      frameCount = 0;
+      score = 0;
+      obstacles = [];
+      isGameOver = false;
+      gameStarted = false;
+      nextObstacleIn = Math.floor(randomRange(OBSTACLE_SPACING_MIN, OBSTACLE_SPACING_MAX));
+      backgroundOffset = 0;
+      backgroundTrees = [];
+      backgroundFlowers = [];
+      generateBackgroundDecorations();
+      scoreEl.textContent = "0";
+
+      messageEl.innerHTML = "Tap to start!";
+      messageEl.classList.remove("hidden");
+    }
+
+    function generateBackgroundDecorations() {
+      // Precompute tree and flower positions so the scenery does not jitter
+      for (let x = 40; x < WIDTH + 200; x += 140) {
+        backgroundTrees.push({
+          x,
+          trunkHeight: randomRange(150, 240),
+          canopyLift: randomRange(18, 32)
+        });
+      }
+
+      // Generate more flowers with varied colors
+      const flowerColors = [
+        '#f9c74f', // yellow
+        '#ff6f61', // red/pink
+        '#90e0ef', // light blue
+        '#a084dc', // purple
+        '#4d9de0', // blue
+        '#c77dff'  // violet
+      ];
+
+      for (let x = 20; x < WIDTH + 200; x += 45) {
+        backgroundFlowers.push({
+          x,
+          y: HEIGHT - 60 + randomRange(-8, -1),
+          color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
+          size: randomRange(3, 5)
+        });
+      }
+    }
+
+    function spawnObstacle() {
+      const margin = 40;
+      const maxGapTop = HEIGHT - GAP_HEIGHT - margin;
+      const gapTop = randomRange(margin, maxGapTop);
+
+      obstacles.push({
+        x: WIDTH + 20,
+        width: OBSTACLE_WIDTH,
+        gapTop: gapTop,
+        gapBottom: gapTop + GAP_HEIGHT,
+        scored: false
+      });
+    }
+
+    function updateDragon() {
+      // Apply gravity
+      dragon.dy += gravity;
+      dragon.y += dragon.dy;
+
+      // Check top and bottom bounds (crash if outside)
+      if (dragon.y + dragon.height > HEIGHT || dragon.y < 0) {
+        triggerGameOver();
+      }
+    }
+
+    function updateObstacles() {
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const ob = obstacles[i];
+        ob.x -= gameSpeed;
+
+        // Score when passing obstacle
+        if (!ob.scored && ob.x + ob.width < dragon.x) {
+          ob.scored = true;
+          score += 1;
+          scoreEl.textContent = String(score);
+        }
+
+        // Remove off-screen obstacles
+        if (ob.x + ob.width < 0) {
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // Handle spawning timing
+      nextObstacleIn -= 1;
+      if (nextObstacleIn <= 0) {
+        spawnObstacle();
+        nextObstacleIn = Math.floor(
+          randomRange(OBSTACLE_SPACING_MIN, OBSTACLE_SPACING_MAX)
+        );
+      }
+    }
+
+    function checkCollisions() {
+      for (const ob of obstacles) {
+        const dragonRight = dragon.x + dragon.width;
+        const dragonBottom = dragon.y + dragon.height;
+
+        const horizontallyOverlapping =
+          dragonRight > ob.x && dragon.x < ob.x + ob.width;
+
+        if (horizontallyOverlapping) {
+          const hitsTop = dragon.y < ob.gapTop;
+          const hitsBottom = dragonBottom > ob.gapBottom;
+
+          if (hitsTop || hitsBottom) {
+            triggerGameOver();
+            return;
+          }
+        }
+      }
+    }
+
+    function triggerGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      messageEl.innerHTML =
+        `💥 Game Over!<br/>Score: <strong>${score}</strong><br/><br/>Tap to play again.`;
+      messageEl.classList.remove("hidden");
+    }
+
+    function drawBackground() {
+      // Ground
+      const groundHeight = 60;
+      const offset = backgroundOffset % WIDTH;
+
+      // Shift the scenery to create a scrolling effect
+      ctx.save();
+      ctx.translate(-offset, 0);
+
+      // Draw two tiles so we always cover the canvas while scrolling
+      for (let i = -WIDTH; i <= WIDTH; i += WIDTH) {
+        ctx.save();
+        ctx.translate(i, 0);
+
+        // Vibrant jungle floor
+        ctx.fillStyle = "#2d5d32";
+        ctx.fillRect(0, HEIGHT - groundHeight, WIDTH, groundHeight);
+
+        // Tree trunks and canopies (precomputed so they stay steady)
+        const trunkWidth = 24;
+        for (const tree of backgroundTrees) {
+          const baseX = tree.x;
+          const trunkTopY = HEIGHT - groundHeight - tree.trunkHeight;
+
+          ctx.fillStyle = "#3b2a18";
+          ctx.fillRect(baseX, trunkTopY, trunkWidth, tree.trunkHeight);
+
+          const canopyCenterY = trunkTopY - tree.canopyLift;
+          const canopyCenterX = baseX + trunkWidth / 2;
+
+          ctx.fillStyle = "#3fa35b";
+          ctx.beginPath();
+          ctx.ellipse(canopyCenterX, canopyCenterY, 70, 40, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(canopyCenterX + 55, canopyCenterY + 10, 60, 35, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Flowers (precomputed so they don't jitter)
+        for (const flower of backgroundFlowers) {
+          ctx.fillStyle = flower.color;
+          ctx.beginPath();
+          ctx.arc(flower.x, flower.y, flower.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Add a subtle center
+          ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+          ctx.beginPath();
+          ctx.arc(flower.x, flower.y, flower.size * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function drawDragon() {
+      ctx.save();
+      ctx.translate(dragon.x, dragon.y);
+
+      if (frogImageLoaded) {
+        ctx.drawImage(frogImage, 0, 0, dragon.width, dragon.height);
+      } else {
+        // Fallback simple blue frog while the SVG loads
+        ctx.fillStyle = "#3b8dff";
+        ctx.beginPath();
+        ctx.ellipse(dragon.width / 2, dragon.height / 2, 26, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawObstacles() {
+      for (const ob of obstacles) {
+        // Top log
+        ctx.fillStyle = "#4b2e16";
+        ctx.fillRect(ob.x, 0, ob.width, ob.gapTop);
+
+        // Bottom log
+        ctx.fillRect(ob.x, ob.gapBottom, ob.width, HEIGHT - ob.gapBottom);
+
+        // Bark highlight
+        ctx.fillStyle = "#6d4c33";
+        ctx.fillRect(ob.x, ob.gapTop - 6, ob.width, 6);
+        ctx.fillRect(ob.x, ob.gapBottom, ob.width, 6);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      drawBackground();
+      drawObstacles();
+      drawDragon();
+    }
+
+    function update() {
+      if (!gameStarted || isGameOver) return;
+      frameCount += 1;
+      updateDragon();
+      updateObstacles();
+      checkCollisions();
+
+      // Scroll background slower than obstacles for parallax feel
+      backgroundOffset = (backgroundOffset + gameSpeed * 0.6) % WIDTH;
+
+      // Slight difficulty scaling
+      if (frameCount % 600 === 0) {
+        gameSpeed += 0.3;
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Input handling
+    function handleTap() {
+      if (isGameOver) {
+        resetGame();
+        return;
+      }
+      if (!gameStarted) {
+        gameStarted = true;
+        messageEl.classList.add("hidden");
+        return;
+      }
+      dragon.dy = dragon.flapStrength;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        e.preventDefault();
+        handleTap();
+      } else if (e.code === "Enter" && isGameOver) {
+        e.preventDefault();
+        resetGame();
+      }
+    });
+
+    // Pointer/touch handling for mobile/iPad
+    const tapCapture = document.getElementById("tap-capture");
+
+    // Track if we've already handled this touch to prevent double-firing
+    let touchHandled = false;
+
+    const onTap = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Reset the flag after a short delay
+      if (!touchHandled) {
+        touchHandled = true;
+        handleTap();
+        setTimeout(() => { touchHandled = false; }, 100);
+      }
+    };
+
+    // Primary touch handling for iOS/iPad - use touchstart for best responsiveness
+    tapCapture.addEventListener('touchstart', onTap, { passive: false });
+
+    // Fallback for desktop browsers
+    tapCapture.addEventListener('mousedown', onTap, { passive: false });
+
+    // Prevent multi-touch gestures and scrolling
+    const preventGestures = (e) => {
+      if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventGestures, { passive: false });
+    document.addEventListener("touchstart", preventGestures, { passive: false });
+
+    // Prevent gesture events on iOS
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(eventType => {
+      document.addEventListener(eventType, (e) => e.preventDefault(), { passive: false });
+    });
+
+    // Start game
+    resetGame();
+    gameLoop();
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Rainforest Frog",
+    "slug": "rainforest-frog",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "statusBarStyle": "light",
+      "bundleIdentifier": "com.devinreams.rainforestfrog",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c1dccae6-faa2-4b6c-acfd-0c7cfa71e61a"
+      }
+    }
+  }
+}
