@@ -104,6 +104,8 @@
     let score;
     let isGameOver;
     let backgroundOffset;
+    let backgroundTrees;
+    let backgroundFlowers;
 
     // Dragon (frog) constants
     const DRAGON_WIDTH = 50;
@@ -139,10 +141,31 @@
       isGameOver = false;
       nextObstacleIn = Math.floor(randomRange(OBSTACLE_SPACING_MIN, OBSTACLE_SPACING_MAX));
       backgroundOffset = 0;
+      backgroundTrees = [];
+      backgroundFlowers = [];
+      generateBackgroundDecorations();
       scoreEl.textContent = "0";
 
       messageEl.textContent = "";
       messageEl.classList.add("hidden");
+    }
+
+    function generateBackgroundDecorations() {
+      // Precompute tree and flower positions so the scenery does not jitter
+      for (let x = 40; x < WIDTH + 200; x += 140) {
+        backgroundTrees.push({
+          x,
+          trunkHeight: randomRange(150, 240),
+          canopyLift: randomRange(18, 32)
+        });
+      }
+
+      for (let x = 20; x < WIDTH + 200; x += 90) {
+        backgroundFlowers.push({
+          x,
+          y: HEIGHT - 60 + randomRange(-6, -1)
+        });
+      }
     }
 
     function spawnObstacle() {
@@ -244,37 +267,37 @@
         ctx.fillStyle = "#2d5d32";
         ctx.fillRect(0, HEIGHT - groundHeight, WIDTH, groundHeight);
 
-        // Tree trunks
-        ctx.fillStyle = "#3b2a18";
-        for (let x = 40; x < WIDTH + 200; x += 140) {
-          const trunkHeight = randomRange(150, 240);
-          ctx.fillRect(x, HEIGHT - groundHeight - trunkHeight, 24, trunkHeight);
-        }
+        // Tree trunks and canopies (precomputed so they stay steady)
+        const trunkWidth = 24;
+        for (const tree of backgroundTrees) {
+          const baseX = tree.x;
+          const trunkTopY = HEIGHT - groundHeight - tree.trunkHeight;
 
-        // Canopies
-        ctx.fillStyle = "#3fa35b";
-        for (let x = 20; x < WIDTH + 200; x += 140) {
-          const canopyY = HEIGHT - groundHeight - randomRange(130, 180);
+          ctx.fillStyle = "#3b2a18";
+          ctx.fillRect(baseX, trunkTopY, trunkWidth, tree.trunkHeight);
+
+          const canopyCenterY = trunkTopY - tree.canopyLift;
+          const canopyCenterX = baseX + trunkWidth / 2;
+
+          ctx.fillStyle = "#3fa35b";
           ctx.beginPath();
-          ctx.ellipse(x, canopyY, 70, 40, 0, 0, Math.PI * 2);
+          ctx.ellipse(canopyCenterX, canopyCenterY, 70, 40, 0, 0, Math.PI * 2);
           ctx.fill();
           ctx.beginPath();
-          ctx.ellipse(x + 55, canopyY + 10, 60, 35, 0, 0, Math.PI * 2);
+          ctx.ellipse(canopyCenterX + 55, canopyCenterY + 10, 60, 35, 0, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Flowers
-        ctx.fillStyle = "#f9c74f";
-        for (let x = 20; x < WIDTH + 200; x += 90) {
+        // Flowers (precomputed so they don't jitter)
+        for (const flower of backgroundFlowers) {
+          ctx.fillStyle = "#f9c74f";
           ctx.beginPath();
-          const y = HEIGHT - groundHeight + randomRange(-6, -1);
-          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.arc(flower.x, flower.y, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = "#ff6f61";
           ctx.beginPath();
-          ctx.arc(x + 8, y + 2, 3, 0, Math.PI * 2);
+          ctx.arc(flower.x + 8, flower.y + 2, 3, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = "#f9c74f";
         }
 
         ctx.restore();
