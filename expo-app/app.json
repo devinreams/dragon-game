@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Alex's Rainforest Frog Jumper",
-    "slug": "rainforest-frog-jumper",
+    "slug": "rainforest-frog",
     "version": "1.0.0",
     "orientation": "landscape",
     "userInterfaceStyle": "light",
@@ -14,7 +14,6 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "statusBarStyle": "light",
       "bundleIdentifier": "com.devinreams.rainforestfrogjumper",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
