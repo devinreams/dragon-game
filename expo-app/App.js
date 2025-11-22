@@ -7,18 +7,15 @@ import { Asset } from 'expo-asset';
 
 async function prepareLocalGameFiles() {
   const htmlAsset = Asset.fromModule(require('./assets/game/dragon-game.html'));
-  const frogAsset = Asset.fromModule(require('./assets/game/frog.svg'));
 
-  await Promise.all([htmlAsset.downloadAsync(), frogAsset.downloadAsync()]);
+  await htmlAsset.downloadAsync();
 
   const gameDir = `${FileSystem.cacheDirectory}game/`;
   await FileSystem.makeDirectoryAsync(gameDir, { intermediates: true });
 
   const htmlTarget = `${gameDir}dragon-game.html`;
-  const frogTarget = `${gameDir}frog.svg`;
 
   await FileSystem.copyAsync({ from: htmlAsset.localUri || htmlAsset.uri, to: htmlTarget });
-  await FileSystem.copyAsync({ from: frogAsset.localUri || frogAsset.uri, to: frogTarget });
 
   return htmlTarget;
 }

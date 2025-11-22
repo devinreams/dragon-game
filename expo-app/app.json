@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "Alex's Rainforest Frog Jumper",
+    "name": "Alexs Rainforest Frog Jumper",
     "slug": "rainforest-frog",
+    "scheme": "frogjumper",
     "version": "1.0.0",
     "orientation": "landscape",
     "userInterfaceStyle": "light",

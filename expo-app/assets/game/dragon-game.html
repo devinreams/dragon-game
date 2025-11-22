@@ -184,11 +184,42 @@
     const OBSTACLE_SPACING_MAX = 200; // frames between spawns (max)
 
     let nextObstacleIn = 0;
+
+    // Embed SVG directly as data URI for reliable loading in WebView
+    const frogSvg = `<svg width="70" height="50" viewBox="0 0 70 50" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#4da6ff;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#0066cc;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="35" cy="30" rx="28" ry="18" fill="url(#bodyGradient)" />
+      <ellipse cx="35" cy="18" rx="22" ry="16" fill="#5bb3ff" />
+      <circle cx="28" cy="14" r="5" fill="#ffffff" />
+      <circle cx="42" cy="14" r="5" fill="#ffffff" />
+      <circle cx="28" cy="14" r="3" fill="#000000" />
+      <circle cx="42" cy="14" r="3" fill="#000000" />
+      <circle cx="29" cy="13" r="1.5" fill="#ffffff" opacity="0.8" />
+      <circle cx="43" cy="13" r="1.5" fill="#ffffff" opacity="0.8" />
+      <path d="M 30 20 Q 35 22 40 20" stroke="#003366" stroke-width="1.5" fill="none" stroke-linecap="round" />
+      <ellipse cx="22" cy="38" rx="8" ry="5" fill="#4da6ff" />
+      <ellipse cx="48" cy="38" rx="8" ry="5" fill="#4da6ff" />
+      <ellipse cx="15" cy="32" rx="6" ry="8" fill="#3d96ef" />
+      <ellipse cx="55" cy="32" rx="6" ry="8" fill="#3d96ef" />
+      <ellipse cx="25" cy="26" rx="3" ry="2" fill="#0066cc" opacity="0.3" />
+      <ellipse cx="40" cy="28" rx="4" ry="2.5" fill="#0066cc" opacity="0.3" />
+      <ellipse cx="33" cy="32" rx="3" ry="2" fill="#0066cc" opacity="0.3" />
+    </svg>`;
+
     const frogImage = new Image();
     frogImage.onload = () => {
+      console.log("✅ Frog image loaded successfully");
       frogImageLoaded = true;
     };
-    frogImage.src = "frog.svg";
+    frogImage.onerror = (e) => {
+      console.error("❌ Failed to load frog image:", e);
+    };
+    frogImage.src = "data:image/svg+xml," + encodeURIComponent(frogSvg);
 
     function randomRange(min, max) {
       return Math.random() * (max - min) + min;
@@ -399,10 +430,38 @@
       if (frogImageLoaded) {
         ctx.drawImage(frogImage, 0, 0, dragon.width, dragon.height);
       } else {
-        // Fallback simple blue frog while the SVG loads
+        // Fallback blue frog while the SVG loads
+        const centerX = dragon.width / 2;
+        const centerY = dragon.height / 2;
+
+        // Body
         ctx.fillStyle = "#3b8dff";
         ctx.beginPath();
-        ctx.ellipse(dragon.width / 2, dragon.height / 2, 26, 15, 0, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY + 5, 26, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = "#5bb3ff";
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY - 5, 20, 13, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(centerX - 8, centerY - 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX + 8, centerY - 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pupils
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(centerX - 8, centerY - 8, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX + 8, centerY - 8, 2, 0, Math.PI * 2);
         ctx.fill();
       }
 
